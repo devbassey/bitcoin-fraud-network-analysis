@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Bitcoin Fraud Network — Compliance Analytics</title>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display&display=swap" rel="stylesheet"/>
+<style>
+
+  /* ── ROOT VARIABLES ── */
+  :root {
+    --bg:           #f0fdf4;
+    --surface:      #FFFFFF;
+    --surface-alt:  #FAFAFA;
+    --border:       #E5E7EB;
+    --border-soft:  #F3F4F6;
+
+    --green-900:    #14532D;
+    --green-800:    #166534;
+    --green-700:    #15803D;
+    --green-600:    #16A34A;
+    --green-500:    #22C55E;
+    --green-400:    #4ADE80;
+    --green-300:    #86EFAC;
+    --green-100:    #DCFCE7;
+    --green-50:     #F0FDF4;
+
+    --text-primary:   #111827;
+    --text-secondary: #374151;
+    --text-muted:     #6B7280;
+    --text-faint:     #9CA3AF;
+
+    --danger:   #EF4444;
+    --warning:  #F59E0B;
+    --info:     #3B82F6;
+
+    --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-lg: 0 10px 15px rgba(0,0,0,0.06), 0 4px 6px rgba(0,0,0,0.04);
+
+    --radius-sm:  8px;
+    --radius-md:  12px;
+    --radius-lg:  16px;
+    --radius-xl:  20px;
+    --radius-pill: 100px;
+  }
+
+  /* ── RESET ── */
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 40px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow-xs);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .header-logo {
+    width: 32px;
+    height: 32px;
+    background: var(--green-800);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .header-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 25px;
+    color: var(--text-primary);
+    font-weight: 400;
+    letter-spacing: -0.2px;
+  }
+  .header-subtitle {
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-top: 1px;
+  }
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .meta-badge {
+    background: var(--green-50);
+    border: 1px solid var(--green-100);
+    color: var(--green-800);
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── PAGE WRAPPER ── */
+  .page {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 32px 40px 60px;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    margin-bottom: 20px;
+  }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    color: var(--text-primary);
+    font-weight: 400;
+  }
+  .section-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* ── STAT CARDS ROW ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s, transform 0.2s;
+  }
+  .stat-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  .stat-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    color: var(--text-primary);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text-faint);
+  }
+  .stat-card.danger  .stat-value { color: var(--danger);    }
+  .stat-card.success .stat-value { color: var(--green-700); }
+  .stat-card.neutral .stat-value { color: var(--text-muted);}
+  .stat-card.primary .stat-value { color: var(--green-800); }
+  .stat-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+
+  /* ── FILTER BAR ── */
+  .filter-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 24px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+    flex-wrap: wrap;
+  }
+  .filter-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-right: 4px;
+  }
+  .filter-btn {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 6px 16px;
+    border-radius: var(--radius-pill);
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    letter-spacing: 0.2px;
+  }
+  .filter-btn:hover {
+    background: var(--green-50);
+    border-color: var(--green-300);
+    color: var(--green-800);
+    box-shadow: var(--shadow-xs);
+  }
+  .filter-btn.active {
+    background: var(--green-800);
+    border-color: var(--green-800);
+    color: #FFFFFF;
+    box-shadow: 0 2px 8px rgba(22,101,52,0.25);
+  }
+  .filter-info {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--green-700);
+    font-weight: 500;
+    background: var(--green-50);
+    border: 1px solid var(--green-100);
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+  }
+
+  /* ── GRID LAYOUT ── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .full-width { grid-column: 1 / -1; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s;
+  }
+  .card:hover {
+    box-shadow: var(--shadow-md);
+  }
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 15px;
+    color: var(--text-primary);
+    font-weight: 400;
+  }
+  .card-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .card-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .card-badge.green {
+    background: var(--green-50);
+    color: var(--green-800);
+    border: 1px solid var(--green-100);
+  }
+
+  /* ── LEGEND DOTS ── */
+  .legend-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── TABLE ── */
+  .table-meta {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-weight: 400;
+    margin-left: 8px;
+  }
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  thead th {
+    background: var(--surface-alt);
+    color: var(--text-muted);
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody tr {
+    border-bottom: 1px solid var(--border-soft);
+    transition: background 0.12s;
+  }
+  tbody tr:hover { background: var(--green-50); }
+  tbody td {
+    padding: 11px 14px;
+    color: var(--text-secondary);
+    vertical-align: middle;
+  }
+  tbody td:first-child {
+    color: var(--text-faint);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  tbody td:nth-child(2) {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  tbody tr:nth-child(even) { background: var(--surface-alt); }
+  tbody tr:nth-child(even):hover { background: var(--green-50); }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+  .badge::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.7;
+  }
+  .badge.illicit {
+    background: #FEF2F2;
+    color: #B91C1C;
+    border: 1px solid #FECACA;
+  }
+  .badge.licit {
+    background: var(--green-50);
+    color: var(--green-700);
+    border: 1px solid var(--green-100);
+  }
+  .badge.unknown {
+    background: #F9FAFB;
+    color: #6B7280;
+    border: 1px solid #E5E7EB;
+  }
+
+  /* ── RISK SCORE BAR ── */
+  .risk-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .risk-bar-bg {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .risk-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--green-500);
+  }
+  .risk-bar-fill.high   { background: var(--danger);   }
+  .risk-bar-fill.medium { background: var(--warning);  }
+  .risk-bar-fill.low    { background: var(--green-500); }
+
+  /* ── NO RESULTS ── */
+  .no-results {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-faint);
+    font-size: 13px;
+    display: none;
+  }
+  .no-results-icon { font-size: 24px; margin-bottom: 8px; }
+
+  /* ── DIVIDER ── */
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  /* ── FOOTER ── */
+  .footer {
+    text-align: center;
+    padding: 24px 40px;
+    font-size: 11px;
+    color: var(--text-faint);
+    border-top: 1px solid var(--border);
+    margin-top: 32px;
+    background: var(--surface);
+  }
+  .footer-brand {
+    font-weight: 600;
+    color: var(--green-800);
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <div class="header-brand">
+    <div class="header-logo">&#x26D3;</div>
+    <div>
+      <div class="header-title">Bitcoin Fraud Network Analytics</div>
+      <div class="header-subtitle">Elliptic Dataset · Compliance Intelligence</div>
+    </div>
+  </div>
+  <div class="header-meta">
+    <span class="meta-badge">Highest Risk: 84997422</span>
+    <span class="meta-badge">Score: 0.7754</span>
+    <span class="meta-badge">CBN / NFIU</span>
+  </div>
+</header>
+
+<!-- ── PAGE ── -->
+<div class="page">
+
+  <!-- ── STATS ROW ── -->
+  <div class="stats-row">
+    <div class="stat-card primary">
+      <div class="stat-label">Total Nodes</div>
+      <div class="stat-value">205</div>
+      <div class="stat-sub">Transactions in subgraph</div>
+    </div>
+    <div class="stat-card danger">
+      <div class="stat-label">
+        <span class="stat-dot" style="background:var(--danger)"></span>Illicit
+      </div>
+      <div class="stat-value">4</div>
+      <div class="stat-sub">Confirmed illicit nodes</div>
+    </div>
+    <div class="stat-card success">
+      <div class="stat-label">
+        <span class="stat-dot" style="background:var(--green-500)"></span>Licit
+      </div>
+      <div class="stat-value">69</div>
+      <div class="stat-sub">Confirmed licit nodes</div>
+    </div>
+    <div class="stat-card neutral">
+      <div class="stat-label">
+        <span class="stat-dot" style="background:var(--text-faint)"></span>Unknown
+      </div>
+      <div class="stat-value">132</div>
+      <div class="stat-sub">Unlabelled transactions</div>
+    </div>
+  </div>
+
+  <!-- ── FILTER BAR ── -->
+  <div class="filter-section">
+    <span class="filter-label">Filter by Class</span>
+    <button class="filter-btn active" onclick="filterClass('all',     this)">All Nodes</button>
+    <button class="filter-btn"        onclick="filterClass('illicit', this)">Illicit</button>
+    <button class="filter-btn"        onclick="filterClass('licit',   this)">Licit</button>
+    <button class="filter-btn"        onclick="filterClass('unknown', this)">Unknown</button>
+    <span class="filter-info" id="filterInfo">Showing all classes</span>
+  </div>
+
+  <!-- ── GRID ── -->
+  <div class="grid">
+
+    <!-- NETWORK GRAPH -->
+    <div class="card full-width">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Transaction Network Graph</div>
+          <div class="card-desc">Hover nodes for details · Click legend to toggle · Double-click to isolate</div>
+        </div>
+        <span class="card-badge green">Interactive</span>
+      </div>
+      <div class="legend-row">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#EF4444"></div>Illicit
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#22C55E"></div>Licit
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#9CA3AF"></div>Unknown
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#166534; border: 2px solid #86EFAC;"></div>Top 10 Riskiest
+        </div>
+      </div>
+      <div id="networkGraph"></div>
+    </div>
+
+    <!-- RISK TABLE -->
+    <div class="card full-width">
+      <div class="card-header">
+        <div>
+          <div class="card-title">
+            Risk Ranking Table
+            <span class="table-meta" id="tableCount"></span>
+          </div>
+          <div class="card-desc">Top 20 nodes ranked by composite risk score</div>
+        </div>
+        <span class="card-badge green">Top 20</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Transaction ID</th>
+              <th>Class</th>
+              <th>Risk Score</th>
+              <th>Betweenness</th>
+              <th>PageRank</th>
+              <th>In-Degree</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+        <div class="no-results" id="noResults">
+          <div class="no-results-icon">&#128269;</div>
+          No nodes found for this class in the top 20.
+        </div>
+      </div>
+    </div>
+
+    <!-- TIME CHART -->
+    <div class="card full-width">
+      <div class="card-header">
+        <div>
+          <div class="card-title">Transaction Activity Over Time</div>
+          <div class="card-desc">Transaction volume per time step · Illicit activity highlighted in red</div>
+        </div>
+        <span class="card-badge green">Line Chart</span>
+      </div>
+      <div id="timeChart"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer class="footer">
+  <span class="footer-brand">Bitcoin Fraud Network Analytics</span>
+  &nbsp;·&nbsp; Elliptic Dataset
+  &nbsp;·&nbsp; Generated for CBN / NFIU Compliance Submission
+  &nbsp;·&nbsp; Prepared by: Utibe Bassey (@devbassey)
+</footer>
+
+<script>
+  // ── Embedded data ──────────────────────────────────────────
+  const networkData  = {"data":[{"hoverinfo":"none","line":{"color":"rgba(107,114,128,0.15)","width":0.4},"mode":"lines","name":"edges","showlegend":false,"x":[0.37935791228580557,0.5003487466150082,null,0.7036304689604802,0.6707509972647709,null,-0.05245444886236746,-0.09533619009827553,null,0.8039435686668678,0.6170536922415538,null,0.8039435686668678,0.9230117012870309,null,0.12533223598392623,-0.7578211150452981,null,0.12533223598392623,1.0,null,0.5003487466150082,0.9147873654273406,null,0.258287082695191,0.2680360973380881,null,0.258287082695191,-0.17708274971455634,null,0.258287082695191,0.6391880198380538,null,-0.23008428791747318,-0.3782900885316877,null,-0.4552896715458387,-0.4299806095122781,null,0.17827547178520795,0.5003487466150082,null,0.7989733337476334,0.8086464772401484,null,0.045081243976748016,0.5003487466150082,null,-0.6336507278561118,-0.3782900885316877,null,0.1804368470655622,0.17156111983905029,null,0.1804368470655622,0.1857870714293904,null,0.1626089726254374,0.5003487466150082,null,0.1857870714293904,0.17156111983905029,null,-0.2276359051121835,-0.7324423803413646,null,-0.2276359051121835,0.026634772480028095,null,0.026634772480028095,0.5327736170203279,null,0.5327736170203279,0.7779524864256943,null,0.7779524864256943,0.6340997778650469,null,0.28082976566286394,0.07859364712339598,null,-0.722058960772825,-0.5717577155737283,null,0.04524943811403696,-0.1933437423744068,null,0.5612123516284866,0.6484119823908147,null,0.17174857995759804,-0.1589013982309494,null,-0.3703167336648544,-0.3782900885316877,null,-0.7111719595246161,-0.8287075818090326,null,-0.11464943624751976,-0.3782900885316877,null,-0.7832952786263724,-0.5717577155737283,null,-0.3563995598458235,-0.05478873695488728,null,-0.6800961253434958,-0.3782900885316877,null,-0.7264877137878999,-0.5717577155737283,null,-0.029437213303009736,0.17573290361872895,null,-0.5717577155737283,-0.6958976928126931,null,0.41233899918524736,0.12533223598392623,null,0.6707509972647709,0.9505520415286762,null,-0.1828635233635763,-0.5717577155737283,null,0.7623915057309737,0.9567034933999858,null,0.17573290361872895,0.3980584427825542,null,0.30322686185949016,0.7623915057309737,null,0.029845301800037055,0.47834780980269864,null,-0.510169298279142,-0.5717577155737283,null,-0.5786412626468072,-0.5717577155737283,null,-0.1012845634317091,-0.5717577155737283,null,0.7107208863499791,0.966265574236071,null,0.4387994880508342,0.3544959014329344,null,-0.829203316853549,-0.8199119385965374,null,-0.36898417662750355,-0.7111719595246161,null,0.058456634716066706,0.41932982379531863,null,0.3544959014329344,0.5614629277463269,null,0.45927980898019316,0.469431889774596,null,0.41932982379531863,0.9385703686219496,null,0.5614629277463269,0.5958987783888509,null,-0.33800654933673474,-0.3782900885316877,null,0.5958987783888509,0.7482636266768798,null,0.8198073329663988,0.8606588666547353,null,-0.09234410968114448,-0.3782900885316877,null,0.4182877429925841,0.8198073329663988,null,-0.517543759793451,-0.5522025538726569,null,-0.22300047788529692,-0.5717577155737283,null,-0.5403021873323135,-0.7933875580430513,null,-0.7727501003346235,-0.5717577155737283,null,0.7416124067893971,0.6851701451666729,null,0.469431889774596,0.7404635600982652,null,0.6851701451666729,0.8829788201728169,null,-0.3414721554583307,-0.5717577155737283,null,-0.6894001388835719,-0.8425551880442215,null,-0.43637072139151867,-0.79986981999396,null,-0.41356156353194246,-0.5717577155737283,null,-0.7121913578928943,-0.5717577155737283,null,-0.1596254407361328,-0.7558677519373876,null,-0.1596254407361328,-0.3305543209379757,null,-0.3305543209379757,-0.7558677519373876,null,-0.382511280047003,-0.3782900885316877,null,-0.5648287158833889,-0.3782900885316877,null,0.12605781891248913,-0.04861506460869018,null,-0.30007039662301216,-0.5717577155737283,null,0.7507299146748033,0.7580027764514006,null,-0.8547773145342147,-0.5717577155737283,null,-0.1748894477293443,-0.44239953818712346,null,-0.1748894477293443,-0.09533619009827553,null,0.7580027764514006,0.7841637859122199,null,0.13125468395839357,-0.5687537843049736,null,0.13125468395839357,-0.03568682945767809,null,0.13125468395839357,-0.7957245919252653,null,0.13125468395839357,-0.8506215670411065,null,0.13125468395839357,0.9714831577181112,null,0.13125468395839357,0.1640719002726707,null,0.13125468395839357,0.2626152080298495,null,0.13125468395839357,-0.48946436541339994,null,0.13125468395839357,0.512232157915369,null,0.13125468395839357,-0.862838054410237,null,0.13125468395839357,0.6513875027475655,null,0.13125468395839357,0.8455996732169513,null,0.13125468395839357,0.9680611040538889,null,0.13125468395839357,0.0806798737331397,null,0.13125468395839357,0.8412445517376684,null,0.13125468395839357,0.7773890335333408,null,0.13125468395839357,0.7047576866566965,null,0.13125468395839357,0.060805151778417776,null,0.07859364712339598,-0.30728759778132797,null,-0.3782900885316877,-0.6873781103446368,null,-0.3782900885316877,-0.14206062750949106,null,-0.3821775119440338,-0.7948119555925613,null,-0.5722081566207694,-0.7118316381839912,null,-0.04861506460869018,-0.3404498924443184,null,-0.24759257326865078,-0.7205234798912467,null,-0.4299806095122781,-0.6454905963288808,null,0.036218187349163586,-0.2745745469672188,null,-0.29507518866785537,-0.5348528931730635,null,0.3636937677264594,0.8609847221462203,null,0.3636937677264594,0.91335185008647,null,0.3636937677264594,-0.28059567990290174,null,0.3636937677264594,0.36184602537212257,null,-0.35133884815087946,-0.5717577155737283,null,-0.3090704411800471,-0.29507518866785537,null,-0.5522025538726569,-0.8556885518434543,null,-0.13406949242740318,0.1804368470655622,null,0.3210137463914487,-0.09533619009827553,null,-0.17433002859849578,0.1804368470655622,null,-0.23728848592687643,-0.5717577155737283,null,-0.5538486182802795,-0.863510271418868,null,0.19829585519445822,-0.09533619009827553,null,-0.09533619009827553,-0.44239953818712346,null,0.2575651206344654,0.07859364712339598,null,-0.5936712831171884,-0.43637072139151867,null,-0.3786501177279349,-0.3782900885316877,null,0.4570489463262931,0.5823405570365481,null,0.6161014937944667,0.9629940718847045,null,0.6161014937944667,0.15010819713642468,null,-0.09558050182915175,-0.3782900885316877,null,0.14879101133781392,-0.09533619009827553,null,-0.16537034672500936,-0.3782900885316877,null,-0.4940878300693561,-0.3782900885316877,null,-0.5772835532612379,-0.3782900885316877,null,0.31831382051624774,0.036218187349163586,null,0.5179399926962672,0.6161014937944667,null,0.29900675635314433,0.07859364712339598,null,0.5857625082471015,0.7107208863499791,null,-0.8710261642453474,-0.5717577155737283,null,-0.12224506034188055,-0.5717577155737283,null,0.14656518981930045,0.04524943811403696,null,0.10583059935126486,0.4570489463262931,null,0.16290327313064504,-0.2276359051121835,null,-0.1262699363517555,-0.3782900885316877,null,-0.13636623842194978,0.1804368470655622,null,-0.13636623842194978,-0.13406949242740318,null,-0.7741617899133139,-0.6958976928126931,null,-0.7741617899133139,-0.5717577155737283,null,-0.4917918968980372,-0.5717577155737283,null,-0.4917918968980372,-0.6958976928126931,null,-0.21057180658577576,-0.3782900885316877,null,-0.6264159235387592,-0.5717577155737283,null,0.1395381449793416,-0.1589013982309494,null,-0.2336610755232315,-0.3782900885316877,null,-0.3935331806191826,-0.4788511303331871,null,-0.6324778187943271,-0.5717577155737283,null,0.0033520096852100146,-0.09533619009827553,null,-0.2711649675945042,-0.829203316853549,null],"y":[0.5531828864584123,0.28211590269309345,null,0.5857939088251114,0.5464495571217746,null,-0.3679527087936936,-0.6628027391865343,null,0.2360132110895464,0.772438921432548,null,0.2360132110895464,-0.3199749160534228,null,0.0003992334828090878,-0.05386611222401284,null,0.0003992334828090878,0.015424021862813025,null,0.28211590269309345,0.4433585996352741,null,0.8547021725121086,0.9476346940758226,null,0.8547021725121086,0.8755141608922347,null,0.8547021725121086,0.6645630429278969,null,0.053287420972613825,0.6083974471867719,null,-0.09918319668273895,-0.5059233204737587,null,-0.0697135062765542,0.28211590269309345,null,0.2978142744907466,0.5382029988868324,null,0.19378614441100508,0.28211590269309345,null,0.6944211742650472,0.6083974471867719,null,0.6724516800261003,0.9423133498832301,null,0.6724516800261003,0.4449410586091525,null,0.3444498755175045,0.28211590269309345,null,0.4449410586091525,0.9423133498832301,null,-0.24492962343647817,-0.5409253585939455,null,-0.24492962343647817,-0.49481460904413976,null,-0.49481460904413976,-0.3883434553322229,null,-0.3883434553322229,-0.46049722332448073,null,-0.46049722332448073,-0.677670377953196,null,0.006019723544514666,-0.35441166869656904,null,0.27291404441254735,0.09280046619207051,null,-0.3899655673670259,-0.8354870051851819,null,-0.7710472403160591,-0.7421425963215641,null,-0.4763556163952263,-0.8060543813826894,null,0.07588873788669848,0.6083974471867719,null,-0.32790192497515414,-0.25027066876700454,null,0.3891356598332064,0.6083974471867719,null,0.08277393083533284,0.09280046619207051,null,-0.7690881023562541,-0.835779318297496,null,0.4036123571528408,0.6083974471867719,null,-0.1430183306147275,0.09280046619207051,null,-0.10847317081852216,0.36767787909055594,null,0.09280046619207051,0.535643968130494,null,0.05554630723987035,0.0003992334828090878,null,0.5464495571217746,0.36599654640674467,null,-0.30054939351240906,0.09280046619207051,null,0.45685336032555335,0.2042132295570209,null,0.36767787909055594,0.8920446473675353,null,0.4644303691488735,0.45685336032555335,null,-0.48662591786346754,-0.7841050684970103,null,0.019226434589513536,0.09280046619207051,null,0.24967949135382184,0.09280046619207051,null,-0.24863028243557445,0.09280046619207051,null,-0.3682002898818695,-0.2662379487236982,null,-0.34561124735897353,-0.3497346783465666,null,-0.068025302252969,0.055324758662662746,null,-0.07021277202746273,-0.32790192497515414,null,0.6361233393185428,0.3983239477344847,null,-0.3497346783465666,-0.18508556516493063,null,-0.5892836662766754,-0.7878552909633711,null,0.3983239477344847,0.2897416261694802,null,-0.18508556516493063,0.2820132448746409,null,0.18010630772283953,0.6083974471867719,null,0.2820132448746409,0.6723985088744125,null,0.21187466267586594,0.4943447396180524,null,0.12574782141370036,0.6083974471867719,null,-0.20930427641391333,0.21187466267586594,null,0.6668746198322082,0.43352286771772813,null,-0.10520026842912293,0.09280046619207051,null,0.0608693283947829,0.3599379770385107,null,0.2294619622393948,0.09280046619207051,null,-0.059299641564122284,-0.0059294473268769994,null,-0.7878552909633711,-0.5298171555860135,null,-0.0059294473268769994,-0.35710651810663735,null,-0.35284330247681644,0.09280046619207051,null,0.15250973118693417,-0.13748026907139116,null,0.019766083555413122,-0.35764986639386376,null,-0.18628317497690103,0.09280046619207051,null,-0.33595606843900255,0.09280046619207051,null,0.2201779403133046,0.4354119387523964,null,0.2201779403133046,0.3248740970502124,null,0.3248740970502124,0.4354119387523964,null,0.29337918204915653,0.6083974471867719,null,0.6561279792443998,0.6083974471867719,null,-0.46923531449611955,-0.2756176544639212,null,-0.28943454709162514,0.09280046619207051,null,0.4212178254830435,-0.12235281988186873,null,0.3276689371529314,0.09280046619207051,null,-0.28048430642447686,-0.7752044860199666,null,-0.28048430642447686,-0.6628027391865343,null,-0.12235281988186873,-0.5454678404386449,null,-0.06770695781353381,-0.663710567385021,null,-0.06770695781353381,0.8898300514511115,null,-0.06770695781353381,-0.4290377324956492,null,-0.06770695781353381,-0.1932527063395332,null,-0.06770695781353381,-0.08853901169840853,null,-0.06770695781353381,-0.8670331219521769,null,-0.06770695781353381,-0.8428156817769159,null,-0.06770695781353381,0.8492986544530615,null,-0.06770695781353381,0.8141823820082666,null,-0.06770695781353381,-0.03911160216931391,null,-0.06770695781353381,-0.5456821417389095,null,-0.06770695781353381,-0.4200740730546227,null,-0.06770695781353381,-0.18018191931210542,null,-0.06770695781353381,-0.8678314373948964,null,-0.06770695781353381,-0.48774355890337,null,-0.06770695781353381,0.623511999208022,null,-0.06770695781353381,-0.6111588893600706,null,-0.06770695781353381,0.9113440009158215,null,-0.35441166869656904,-0.7224981628065896,null,0.6083974471867719,0.4690454561230912,null,0.6083974471867719,0.9306289774593963,null,-0.15837847854332518,-0.3010789769478175,null,-0.5560530470835785,-0.4630682957005924,null,-0.2756176544639212,-0.7664112400114587,null,0.06857993519302273,-0.3046131454311738,null,-0.5059233204737587,-0.6680032093403604,null,-0.5047933665160509,-0.8545335392752534,null,-0.25582052025518065,-0.7563944593007424,null,0.11208966172370714,0.34767879970263205,null,0.11208966172370714,-0.07558410506837474,null,0.11208966172370714,0.9035921598999026,null,0.11208966172370714,-0.8219331645537282,null,-0.41488664010632853,0.09280046619207051,null,-0.40698147381651223,-0.25582052025518065,null,0.43352286771772813,0.30646852808854386,null,0.6561634566536707,0.6724516800261003,null,-0.4891444256166348,-0.6628027391865343,null,0.45916440039282386,0.6724516800261003,null,-0.38370311802453005,0.09280046619207051,null,0.36676279505449944,0.15181473241831184,null,-0.15572000368999772,-0.6628027391865343,null,-0.6628027391865343,-0.7752044860199666,null,-0.6249608501719783,-0.35441166869656904,null,0.35835333504847966,0.019766083555413122,null,0.1242171693700755,0.6083974471867719,null,0.7345437402645469,0.6047449860492372,null,-0.36172916598590965,0.11742601573492051,null,-0.36172916598590965,-0.7605772892138604,null,0.5112156060005166,0.6083974471867719,null,-0.25369391336108527,-0.6628027391865343,null,0.534406172948453,0.6083974471867719,null,0.2974074463575113,0.6083974471867719,null,0.2781505865831181,0.6083974471867719,null,-0.13863173230933606,-0.5047933665160509,null,-0.16870418548288588,-0.36172916598590965,null,0.06115079440072804,-0.35441166869656904,null,-0.643030293534108,-0.3682002898818695,null,0.030495612413974513,0.09280046619207051,null,-0.06352326949568583,0.09280046619207051,null,0.09060291631395433,-0.3899655673670259,null,0.7102774404148633,0.7345437402645469,null,-0.04301138053846983,-0.24492962343647817,null,0.6648806671824865,0.6083974471867719,null,0.31451866191239974,0.6724516800261003,null,0.31451866191239974,0.6561634566536707,null,0.21605130585772417,0.535643968130494,null,0.21605130585772417,0.09280046619207051,null,0.32238457861842146,0.09280046619207051,null,0.32238457861842146,0.535643968130494,null,0.7109834170601784,0.6083974471867719,null,-0.2784102100586457,0.09280046619207051,null,-0.6002105954912937,-0.8060543813826894,null,0.6373224160330042,0.6083974471867719,null,0.8675014360445802,0.7777970694047998,null,0.11629185401258482,0.09280046619207051,null,-0.9081310205960097,-0.6628027391865343,null,-0.2412817366762363,-0.068025302252969,null],"type":"scatter"},{"hoverinfo":"text","hovertext":["\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 165850116\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e ILLICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #110","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 165850173\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e ILLICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #54","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 21627002\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e ILLICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #34","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84321158\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e ILLICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #146"],"legendgroup":"illicit","marker":{"color":"#EF4444","line":{"color":"rgba(255,255,255,0.4)","width":0.5},"opacity":0.85,"size":7},"mode":"markers","name":"Illicit","x":[0.7036304689604802,0.9505520415286762,0.6707509972647709,-0.16537034672500936],"y":[0.5857939088251114,0.36599654640674467,0.5464495571217746,0.534406172948453],"type":"scatter"},{"hoverinfo":"text","hovertext":["\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 209064452\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #113","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13367307\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #188","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 12781074\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #189","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 363069465\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0613\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #22","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 363069469\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.02\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #86","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 225286689\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0104\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #100","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 390332457\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.025\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #68","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84736556\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #133","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13354030\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #194","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 209062970\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #129","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 339083325\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0401\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #47","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13357635\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #193","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 37791816\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #137","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 246401613\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #59","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84759648\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #134","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 225274468\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0104\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #99","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 225274471\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0104\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #98","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 288676970\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.02\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #83","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 219414636\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #120","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 9904238\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #118","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13364848\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #192","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 362945145\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #123","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 208242318\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #117","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 36364435\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0211\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #77","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 98056863\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #112","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 12788388\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #190","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 73269414\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #32","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 339083435\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #162","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 339083440\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #40","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 97745607\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #158","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 97702600\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #138","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 97448650\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #50","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 12788435\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #196","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 225288410\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0104\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #101","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 12788449\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #197","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 96655080\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #154","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 4261635\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #115","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13368582\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #195","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 97756937\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #156","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13367066\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #198","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 28967218\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #44","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 339083578\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #29","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 339083576\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #173","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 339082056\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0223\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #70","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 339082059\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #172","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13366609\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #200","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13361495\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #201","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 97391458\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #182","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84712300\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #167","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 149158766\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0211\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #74","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 238200705\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.02\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #84","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 301840773\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #65","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13365126\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #202","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 288126872\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #105","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 339264938\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0211\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #81","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 195264956\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.1019\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #12","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 218266570\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0211\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #73","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13365201\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #203","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 3814868\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0167\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #87","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 97753556\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0167\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #91","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13363680\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #204","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 50157029\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #176","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13361143\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #205","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 21539321\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #143"],"legendgroup":"licit","marker":{"color":"#22C55E","line":{"color":"rgba(255,255,255,0.4)","width":0.5},"opacity":0.85,"size":7},"mode":"markers","name":"Licit","x":[0.37935791228580557,-0.5687537843049736,-0.48946436541339994,0.12533223598392623,-0.7578211150452981,0.36184602537212257,0.258287082695191,-0.23008428791747318,0.2626152080298495,0.1626089726254374,0.1857870714293904,-0.8506215670411065,-0.722058960772825,-0.8556885518434543,-0.11464943624751976,0.8609847221462203,0.91335185008647,0.15010819713642468,-0.3563995598458235,-0.7264877137878999,-0.03568682945767809,0.41233899918524736,0.30322686185949016,-0.05478873695488728,-0.5786412626468072,0.8412445517376684,-0.829203316853549,0.058456634716066706,0.41932982379531863,-0.22300047788529692,-0.7727501003346235,0.9385703686219496,0.7773890335333408,-0.28059567990290174,-0.7957245919252653,-0.41356156353194246,-0.30007039662301216,0.9714831577181112,-0.8547773145342147,0.1640719002726707,-0.04861506460869018,-0.29507518866785537,-0.3090704411800471,-0.13406949242740318,-0.17433002859849578,-0.862838054410237,0.6513875027475655,-0.5936712831171884,-0.3786501177279349,-0.7118316381839912,-0.7324423803413646,-0.5348528931730635,0.0806798737331397,0.5179399926962672,-0.7933875580430513,-0.44239953818712346,0.6484119823908147,0.8455996732169513,-0.7741617899133139,-0.4917918968980372,0.512232157915369,0.1395381449793416,0.060805151778417776,0.0033520096852100146],"y":[0.5531828864584123,-0.663710567385021,0.8492986544530615,0.0003992334828090878,-0.05386611222401284,-0.8219331645537282,0.8547021725121086,0.053287420972613825,-0.8428156817769159,0.3444498755175045,0.4449410586091525,-0.1932527063395332,0.27291404441254735,0.30646852808854386,0.3891356598332064,0.34767879970263205,-0.07558410506837474,-0.7605772892138604,-0.7690881023562541,-0.1430183306147275,0.8898300514511115,0.05554630723987035,0.4644303691488735,-0.835779318297496,0.24967949135382184,-0.48774355890337,-0.068025302252969,0.6361233393185428,0.3983239477344847,-0.10520026842912293,0.2294619622393948,0.2897416261694802,0.623511999208022,0.9035921598999026,-0.4290377324956492,-0.18628317497690103,-0.28943454709162514,-0.08853901169840853,0.3276689371529314,-0.8670331219521769,-0.2756176544639212,-0.25582052025518065,-0.40698147381651223,0.6561634566536707,0.45916440039282386,-0.03911160216931391,-0.5456821417389095,0.35835333504847966,0.1242171693700755,-0.4630682957005924,-0.5409253585939455,-0.7563944593007424,-0.8678314373948964,-0.16870418548288588,0.3599379770385107,-0.7752044860199666,-0.7421425963215641,-0.4200740730546227,0.21605130585772417,0.32238457861842146,0.8141823820082666,-0.6002105954912937,0.9113440009158215,-0.9081310205960097],"type":"scatter"},{"hoverinfo":"text","hovertext":["\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 1260557\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #111","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 402915344\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0167\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #88","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 30197751\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #55","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 96308769\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0575\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #23","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 73275433\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #58","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 96677936\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #128","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 66768946\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0697\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #19","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 65227314\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #131","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 390423090\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #130","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 209846325\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #132","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84784183\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #127","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 241565760\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0966\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #15","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 339083330\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.074\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #18","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 241565763\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.099\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #13","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 241565766\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0982\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #14","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 185045063\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #136","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 156893256\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0211\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #71","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 241565772\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0517\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #25","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 16253006\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #45","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 218103888\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #107","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 16253011\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #57","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 28684374\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #135","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84716631\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #126","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 209814617\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #33","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 356535899\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0116\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #97","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 52448356\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #121","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84719212\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #119","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 139256943\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.014\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #93","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 52434550\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #122","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 98056833\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #106","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 289022593\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.02\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #82","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 248905862\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #27","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 203423879\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #28","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 142148753\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.014\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #94","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 261488787\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #124","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 79642776\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0211\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #72","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13365404\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #191","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 98056861\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #108","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 98056864\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #125","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 96600225\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #35","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 99506337\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #56","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 42991779\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #109","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 98845348\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #53","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 96600233\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #60","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 209695402\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #163","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 42991788\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0647\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #20","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 105430700\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #164","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 218468531\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #61","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 202506424\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0211\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #78","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 42991800\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0886\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #16","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84324540\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #165","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 42991805\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0872\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #17","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 231997630\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #41","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84474557\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #160","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 231997634\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #161","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 42991813\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0523\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #24","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 244688582\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #159","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 141557959\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #139","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 15335629\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0211\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #79","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 230440145\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #67","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 21627096\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #140","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 106430683\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #39","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 12714204\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0411\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #46","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 21627107\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #38","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 1599204\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #155","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 106441957\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #66","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 72614118\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #141","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 98042087\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #42","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 72614121\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0211\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #76","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 97754858\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #151","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 12714219\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0167\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #90","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 248922859\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #52","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 12714213\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0223\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #69","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84757744\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #150","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84750071\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #152","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 218270971\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #153","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 46268676\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #114","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 1891081\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0167\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #89","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 46268683\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #43","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 21627659\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #48","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 116792090\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.1069\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #11","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 390381340\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0116\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #96","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 232431918\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #51","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 230555952\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #157","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 149160242\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #149","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 15298871\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #116","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 93323576\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #31","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 230555961\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #30","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 97911097\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #49","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 62137659\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #170","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 246153543\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #37","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 44115273\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #64","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 2055495\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #171","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 13361484\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0076\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #199","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 80089421\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #183","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 336977746\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #185","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 294415189\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #184","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 186126686\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #169","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 390594915\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0211\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #75","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 95551861\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0412\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #36","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 288358777\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0613\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #21","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84730233\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #166","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 95551866\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #63","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 68551038\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0422\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #26","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 270544254\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #168","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 53493644\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #181","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84755860\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #148","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 230440340\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #147","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 197480855\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0211\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #80","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 169081758\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #187","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 96312225\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #178","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 98057132\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #180","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 98057134\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #179","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 16252847\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #186","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 30293426\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #103","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 240389558\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #102","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84787643\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #104","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 339073474\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0167\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #92","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 52120522\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0333\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #62","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84720598\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #177","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 58623455\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #175","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 251123171\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.02\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #85","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 317438947\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0116\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #95","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84755947\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #144","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 403137009\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #145","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 24509944\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #142","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 6783996\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.0083\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #174"],"legendgroup":"unknown","marker":{"color":"#9CA3AF","line":{"color":"rgba(255,255,255,0.4)","width":0.5},"opacity":0.85,"size":7},"mode":"markers","name":"Unknown","x":[-0.05245444886236746,0.8039435686668678,0.7841637859122199,-0.30728759778132797,-0.8199119385965374,-0.4552896715458387,0.9147873654273406,0.17827547178520795,0.7989733337476334,0.045081243976748016,-0.6336507278561118,-0.2276359051121835,0.17156111983905029,0.026634772480028095,0.7779524864256943,0.28082976566286394,-0.4788511303331871,0.6340997778650469,0.04524943811403696,0.5612123516284866,-0.1933437423744068,0.17174857995759804,-0.3703167336648544,-0.7111719595246161,0.6391880198380538,-0.7832952786263724,-0.6800961253434958,0.9230117012870309,-0.029437213303009736,-0.1828635233635763,0.9629940718847045,0.7623915057309737,0.17573290361872895,0.6170536922415538,0.029845301800037055,-0.7948119555925613,0.9680611040538889,-0.510169298279142,-0.1012845634317091,0.7107208863499791,-0.2745745469672188,0.4387994880508342,-0.79986981999396,0.966265574236071,-0.36898417662750355,0.3544959014329344,0.45927980898019316,-0.3404498924443184,-0.863510271418868,0.5614629277463269,-0.33800654933673474,0.5958987783888509,0.8198073329663988,-0.09234410968114448,0.4182877429925841,0.7482636266768798,-0.517543759793451,-0.5403021873323135,-0.7205234798912467,0.3980584427825542,0.7416124067893971,0.469431889774596,-0.7558677519373876,0.6851701451666729,-0.3414721554583307,0.7404635600982652,-0.6894001388835719,-0.43637072139151867,-0.8425551880442215,-0.7121913578928943,-0.1596254407361328,0.9567034933999858,-0.3305543209379757,-0.382511280047003,-0.5648287158833889,0.12605781891248913,0.7507299146748033,-0.1748894477293443,0.7580027764514006,0.8829788201728169,0.07859364712339598,0.2680360973380881,0.8606588666547353,-0.3821775119440338,-0.5722081566207694,-0.24759257326865078,-0.4299806095122781,0.036218187349163586,0.3636937677264594,-0.35133884815087946,-0.5522025538726569,-0.6454905963288808,0.3210137463914487,0.7047576866566965,-0.23728848592687643,-0.5538486182802795,0.19829585519445822,0.2575651206344654,0.8086464772401484,0.4570489463262931,0.6161014937944667,-0.09558050182915175,0.5823405570365481,-0.1589013982309494,0.14879101133781392,-0.4940878300693561,-0.5772835532612379,0.31831382051624774,0.47834780980269864,0.29900675635314433,0.5857625082471015,-0.8710261642453474,-0.12224506034188055,0.14656518981930045,0.10583059935126486,0.16290327313064504,-0.1262699363517555,-0.13636623842194978,-0.8287075818090326,-0.21057180658577576,-0.6264159235387592,1.0,-0.17708274971455634,-0.2336610755232315,-0.3935331806191826,-0.6324778187943271,-0.2711649675945042],"y":[-0.3679527087936936,0.2360132110895464,-0.5454678404386449,-0.7224981628065896,0.055324758662662746,-0.09918319668273895,0.4433585996352741,-0.0697135062765542,0.2978142744907466,0.19378614441100508,0.6944211742650472,-0.24492962343647817,0.9423133498832301,-0.49481460904413976,-0.46049722332448073,0.006019723544514666,0.7777970694047998,-0.677670377953196,-0.3899655673670259,-0.7710472403160591,-0.8354870051851819,-0.4763556163952263,0.07588873788669848,-0.32790192497515414,0.6645630429278969,0.08277393083533284,0.4036123571528408,-0.3199749160534228,-0.10847317081852216,-0.30054939351240906,0.11742601573492051,0.45685336032555335,0.36767787909055594,0.772438921432548,-0.48662591786346754,-0.3010789769478175,-0.18018191931210542,0.019226434589513536,-0.24863028243557445,-0.3682002898818695,-0.8545335392752534,-0.34561124735897353,-0.35764986639386376,-0.2662379487236982,-0.07021277202746273,-0.3497346783465666,-0.5892836662766754,-0.7664112400114587,0.15181473241831184,-0.18508556516493063,0.18010630772283953,0.2820132448746409,0.21187466267586594,0.12574782141370036,-0.20930427641391333,0.6723985088744125,0.6668746198322082,0.0608693283947829,-0.3046131454311738,0.8920446473675353,-0.059299641564122284,-0.7878552909633711,0.4354119387523964,-0.0059294473268769994,-0.35284330247681644,-0.5298171555860135,0.15250973118693417,0.019766083555413122,-0.13748026907139116,-0.33595606843900255,0.2201779403133046,0.2042132295570209,0.3248740970502124,0.29337918204915653,0.6561279792443998,-0.46923531449611955,0.4212178254830435,-0.28048430642447686,-0.12235281988186873,-0.35710651810663735,-0.35441166869656904,0.9476346940758226,0.4943447396180524,-0.15837847854332518,-0.5560530470835785,0.06857993519302273,-0.5059233204737587,-0.5047933665160509,0.11208966172370714,-0.41488664010632853,0.43352286771772813,-0.6680032093403604,-0.4891444256166348,-0.6111588893600706,-0.38370311802453005,0.36676279505449944,-0.15572000368999772,-0.6249608501719783,0.5382029988868324,0.7345437402645469,-0.36172916598590965,0.5112156060005166,0.6047449860492372,-0.8060543813826894,-0.25369391336108527,0.2974074463575113,0.2781505865831181,-0.13863173230933606,-0.7841050684970103,0.06115079440072804,-0.643030293534108,0.030495612413974513,-0.06352326949568583,0.09060291631395433,0.7102774404148633,-0.04301138053846983,0.6648806671824865,0.31451866191239974,-0.25027066876700454,0.7109834170601784,-0.2784102100586457,0.015424021862813025,0.8755141608922347,0.6373224160330042,0.8675014360445802,0.11629185401258482,-0.2412817366762363],"type":"scatter"},{"hoverinfo":"text","hovertext":["\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84997422\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.7754\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #1\u003cbr\u003e\u003cb\u003eTOP 10 RISKIEST\u003c\u002fb\u003e","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 98056823\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.6936\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #2\u003cbr\u003e\u003cb\u003eTOP 10 RISKIEST\u003c\u002fb\u003e","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 99409352\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.3041\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #3\u003cbr\u003e\u003cb\u003eTOP 10 RISKIEST\u003c\u002fb\u003e","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 129892699\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.1866\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #4\u003cbr\u003e\u003cb\u003eTOP 10 RISKIEST\u003c\u002fb\u003e","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 12714251\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.15\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #5\u003cbr\u003e\u003cb\u003eTOP 10 RISKIEST\u003c\u002fb\u003e","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 339083320\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.1495\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #6\u003cbr\u003e\u003cb\u003eTOP 10 RISKIEST\u003c\u002fb\u003e","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 209846311\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.1398\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #7\u003cbr\u003e\u003cb\u003eTOP 10 RISKIEST\u003c\u002fb\u003e","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 85254629\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.1172\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #8\u003cbr\u003e\u003cb\u003eTOP 10 RISKIEST\u003c\u002fb\u003e","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 84997392\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.1172\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #9\u003cbr\u003e\u003cb\u003eTOP 10 RISKIEST\u003c\u002fb\u003e","\u003cb\u003eTransaction ID:\u003c\u002fb\u003e 241565765\u003cbr\u003e\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eRisk Score:\u003c\u002fb\u003e 0.1113\u003cbr\u003e\u003cb\u003eRank:\u003c\u002fb\u003e #10\u003cbr\u003e\u003cb\u003eTOP 10 RISKIEST\u003c\u002fb\u003e"],"legendgroup":"top10","marker":{"color":"#166534","line":{"color":"#86EFAC","width":2},"opacity":1.0,"size":20,"symbol":"circle"},"mode":"markers+text","name":"Top 10 Riskiest","text":["84997422","98056823","99409352","129892699","12714251","339083320","209846311","85254629","84997392","241565765"],"textfont":{"color":"#111827","size":8},"textposition":"top center","x":[-0.3782900885316877,-0.5717577155737283,-0.6958976928126931,-0.09533619009827553,0.13125468395839357,0.1804368470655622,0.5003487466150082,-0.14206062750949106,-0.6873781103446368,0.5327736170203279],"y":[0.6083974471867719,0.09280046619207051,0.535643968130494,-0.6628027391865343,-0.06770695781353381,0.6724516800261003,0.28211590269309345,0.9306289774593963,0.4690454561230912,-0.3883434553322229],"type":"scatter"}],"layout":{"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmapgl":[{"type":"heatmapgl","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"}}},"title":{"font":{"size":15,"color":"#111827","family":"Georgia, serif"},"text":"\u003cb\u003eBitcoin Transaction Network\u003c\u002fb\u003e"},"font":{"color":"#374151","family":"Georgia, serif"},"xaxis":{"showgrid":false,"zeroline":false,"showticklabels":false},"yaxis":{"showgrid":false,"zeroline":false,"showticklabels":false},"legend":{"font":{"size":11,"color":"#374151"},"bgcolor":"rgba(255,255,255,0.95)","bordercolor":"#E5E7EB","borderwidth":1,"itemclick":"toggle","itemdoubleclick":"toggleothers"},"margin":{"l":10,"r":10,"t":50,"b":10},"paper_bgcolor":"#FFFFFF","plot_bgcolor":"#FAFAFA","height":520}};
+  const timeData     = {"data":[{"fill":"tozeroy","fillcolor":"rgba(156,163,175,0.06)","hovertemplate":"\u003cb\u003eClass:\u003c\u002fb\u003e UNKNOWN\u003cbr\u003e\u003cb\u003eTime Step:\u003c\u002fb\u003e %{x}\u003cbr\u003e\u003cb\u003eTransactions:\u003c\u002fb\u003e %{y}\u003cbr\u003e\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#9CA3AF","dash":"dot","width":1.5},"marker":{"color":"#9CA3AF","line":{"color":"white","width":1},"size":4},"mode":"lines+markers","name":"Unknown","x":[1,3,5,10,13,14,15,17,18,19,20,26,27,28,31,33,34,37,39,40,41,42,44,47],"y":[11,7,1,5,4,8,6,5,2,1,7,14,5,5,2,3,2,3,1,20,6,6,5,3],"type":"scatter"},{"fill":"tozeroy","fillcolor":"rgba(34,197,94,0.08)","hovertemplate":"\u003cb\u003eClass:\u003c\u002fb\u003e LICIT\u003cbr\u003e\u003cb\u003eTime Step:\u003c\u002fb\u003e %{x}\u003cbr\u003e\u003cb\u003eTransactions:\u003c\u002fb\u003e %{y}\u003cbr\u003e\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#22C55E","dash":"solid","width":2},"marker":{"color":"#22C55E","line":{"color":"white","width":1},"size":4},"mode":"lines+markers","name":"Licit","x":[3,5,13,15,17,18,19,20,26,27,34,39,40,41,42,47],"y":[1,4,10,1,1,1,3,2,5,3,2,1,13,16,2,4],"type":"scatter"},{"fill":"tozeroy","fillcolor":"rgba(239,68,68,0.08)","hovertemplate":"\u003cb\u003eClass:\u003c\u002fb\u003e ILLICIT\u003cbr\u003e\u003cb\u003eTime Step:\u003c\u002fb\u003e %{x}\u003cbr\u003e\u003cb\u003eTransactions:\u003c\u002fb\u003e %{y}\u003cbr\u003e\u003cextra\u003e\u003c\u002fextra\u003e","line":{"color":"#EF4444","dash":"solid","width":2.5},"marker":{"color":"#EF4444","line":{"color":"white","width":1},"size":4},"mode":"lines+markers","name":"Illicit","x":[26,29],"y":[1,3],"type":"scatter"}],"layout":{"template":{"data":{"histogram2dcontour":[{"type":"histogram2dcontour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"choropleth":[{"type":"choropleth","colorbar":{"outlinewidth":0,"ticks":""}}],"histogram2d":[{"type":"histogram2d","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmap":[{"type":"heatmap","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"heatmapgl":[{"type":"heatmapgl","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"contourcarpet":[{"type":"contourcarpet","colorbar":{"outlinewidth":0,"ticks":""}}],"contour":[{"type":"contour","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"surface":[{"type":"surface","colorbar":{"outlinewidth":0,"ticks":""},"colorscale":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]]}],"mesh3d":[{"type":"mesh3d","colorbar":{"outlinewidth":0,"ticks":""}}],"scatter":[{"fillpattern":{"fillmode":"overlay","size":10,"solidity":0.2},"type":"scatter"}],"parcoords":[{"type":"parcoords","line":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolargl":[{"type":"scatterpolargl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"bar":[{"error_x":{"color":"#2a3f5f"},"error_y":{"color":"#2a3f5f"},"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"bar"}],"scattergeo":[{"type":"scattergeo","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterpolar":[{"type":"scatterpolar","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"histogram":[{"marker":{"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"histogram"}],"scattergl":[{"type":"scattergl","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatter3d":[{"type":"scatter3d","line":{"colorbar":{"outlinewidth":0,"ticks":""}},"marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattermapbox":[{"type":"scattermapbox","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scatterternary":[{"type":"scatterternary","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"scattercarpet":[{"type":"scattercarpet","marker":{"colorbar":{"outlinewidth":0,"ticks":""}}}],"carpet":[{"aaxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"baxis":{"endlinecolor":"#2a3f5f","gridcolor":"white","linecolor":"white","minorgridcolor":"white","startlinecolor":"#2a3f5f"},"type":"carpet"}],"table":[{"cells":{"fill":{"color":"#EBF0F8"},"line":{"color":"white"}},"header":{"fill":{"color":"#C8D4E3"},"line":{"color":"white"}},"type":"table"}],"barpolar":[{"marker":{"line":{"color":"#E5ECF6","width":0.5},"pattern":{"fillmode":"overlay","size":10,"solidity":0.2}},"type":"barpolar"}],"pie":[{"automargin":true,"type":"pie"}]},"layout":{"autotypenumbers":"strict","colorway":["#636efa","#EF553B","#00cc96","#ab63fa","#FFA15A","#19d3f3","#FF6692","#B6E880","#FF97FF","#FECB52"],"font":{"color":"#2a3f5f"},"hovermode":"closest","hoverlabel":{"align":"left"},"paper_bgcolor":"white","plot_bgcolor":"#E5ECF6","polar":{"bgcolor":"#E5ECF6","angularaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"radialaxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"ternary":{"bgcolor":"#E5ECF6","aaxis":{"gridcolor":"white","linecolor":"white","ticks":""},"baxis":{"gridcolor":"white","linecolor":"white","ticks":""},"caxis":{"gridcolor":"white","linecolor":"white","ticks":""}},"coloraxis":{"colorbar":{"outlinewidth":0,"ticks":""}},"colorscale":{"sequential":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"sequentialminus":[[0.0,"#0d0887"],[0.1111111111111111,"#46039f"],[0.2222222222222222,"#7201a8"],[0.3333333333333333,"#9c179e"],[0.4444444444444444,"#bd3786"],[0.5555555555555556,"#d8576b"],[0.6666666666666666,"#ed7953"],[0.7777777777777778,"#fb9f3a"],[0.8888888888888888,"#fdca26"],[1.0,"#f0f921"]],"diverging":[[0,"#8e0152"],[0.1,"#c51b7d"],[0.2,"#de77ae"],[0.3,"#f1b6da"],[0.4,"#fde0ef"],[0.5,"#f7f7f7"],[0.6,"#e6f5d0"],[0.7,"#b8e186"],[0.8,"#7fbc41"],[0.9,"#4d9221"],[1,"#276419"]]},"xaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"yaxis":{"gridcolor":"white","linecolor":"white","ticks":"","title":{"standoff":15},"zerolinecolor":"white","automargin":true,"zerolinewidth":2},"scene":{"xaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"yaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2},"zaxis":{"backgroundcolor":"#E5ECF6","gridcolor":"white","linecolor":"white","showbackground":true,"ticks":"","zerolinecolor":"white","gridwidth":2}},"shapedefaults":{"line":{"color":"#2a3f5f"}},"annotationdefaults":{"arrowcolor":"#2a3f5f","arrowhead":0,"arrowwidth":1},"geo":{"bgcolor":"white","landcolor":"#E5ECF6","subunitcolor":"white","showland":true,"showlakes":true,"lakecolor":"white"},"title":{"x":0.05},"mapbox":{"style":"light"}}},"title":{"font":{"size":15,"color":"#111827","family":"Georgia, serif"},"text":"\u003cb\u003eTransaction Activity Across Time Steps\u003c\u002fb\u003e"},"font":{"color":"#374151","family":"Georgia, serif"},"legend":{"title":{"font":{"size":11},"text":"Node Class"},"font":{"size":11,"color":"#374151"},"bgcolor":"rgba(255,255,255,0.95)","bordercolor":"#E5E7EB","borderwidth":1},"xaxis":{"title":{"font":{"color":"#6B7280","size":12},"text":"Time Step"},"tickfont":{"color":"#9CA3AF","size":10},"gridcolor":"rgba(229,231,235,0.8)","linecolor":"#E5E7EB","tickmode":"linear","dtick":5},"yaxis":{"title":{"font":{"color":"#6B7280","size":12},"text":"Number of Transactions"},"tickfont":{"color":"#9CA3AF","size":10},"gridcolor":"rgba(229,231,235,0.8)","linecolor":"#E5E7EB"},"margin":{"l":40,"r":40,"t":60,"b":40},"paper_bgcolor":"#FFFFFF","plot_bgcolor":"#FAFAFA","hovermode":"x unified","height":420}};
+  const allTableRows = [{"rank": 1, "txId": 84997422, "class": "licit", "risk_score": 0.7754, "betweenness": 1.0, "pagerank": 0.8095, "in_degree": 0.7727}, {"rank": 2, "txId": 98056823, "class": "licit", "risk_score": 0.6936, "betweenness": 0.5882, "pagerank": 1.0, "in_degree": 1.0}, {"rank": 3, "txId": 99409352, "class": "licit", "risk_score": 0.3041, "betweenness": 0.0, "pagerank": 0.9455, "in_degree": 0.1364}, {"rank": 4, "txId": 129892699, "class": "licit", "risk_score": 0.1866, "betweenness": 0.1471, "pagerank": 0.2619, "in_degree": 0.2727}, {"rank": 5, "txId": 12714251, "class": "unknown", "risk_score": 0.15, "betweenness": 0.0, "pagerank": 0.0, "in_degree": 0.0}, {"rank": 6, "txId": 339083320, "class": "unknown", "risk_score": 0.1495, "betweenness": 0.1765, "pagerank": 0.1393, "in_degree": 0.1364}, {"rank": 7, "txId": 209846311, "class": "unknown", "risk_score": 0.1398, "betweenness": 0.1176, "pagerank": 0.1905, "in_degree": 0.1818}, {"rank": 8, "txId": 85254629, "class": "unknown", "risk_score": 0.1172, "betweenness": 0.0, "pagerank": 0.368, "in_degree": 0.0455}, {"rank": 9, "txId": 84997392, "class": "licit", "risk_score": 0.1172, "betweenness": 0.0, "pagerank": 0.368, "in_degree": 0.0455}, {"rank": 10, "txId": 241565765, "class": "unknown", "risk_score": 0.1113, "betweenness": 0.1765, "pagerank": 0.0851, "in_degree": 0.0455}, {"rank": 11, "txId": 116792090, "class": "unknown", "risk_score": 0.1069, "betweenness": 0.0882, "pagerank": 0.1429, "in_degree": 0.1364}, {"rank": 12, "txId": 195264956, "class": "licit", "risk_score": 0.1019, "betweenness": 0.0, "pagerank": 0.2941, "in_degree": 0.0909}, {"rank": 13, "txId": 241565763, "class": "unknown", "risk_score": 0.099, "betweenness": 0.1765, "pagerank": 0.0441, "in_degree": 0.0455}, {"rank": 14, "txId": 241565766, "class": "unknown", "risk_score": 0.0982, "betweenness": 0.1176, "pagerank": 0.1199, "in_degree": 0.0455}, {"rank": 15, "txId": 241565760, "class": "unknown", "risk_score": 0.0966, "betweenness": 0.1471, "pagerank": 0.0476, "in_degree": 0.0455}, {"rank": 16, "txId": 42991800, "class": "unknown", "risk_score": 0.0886, "betweenness": 0.1176, "pagerank": 0.0881, "in_degree": 0.0455}, {"rank": 17, "txId": 42991805, "class": "unknown", "risk_score": 0.0872, "betweenness": 0.0882, "pagerank": 0.1225, "in_degree": 0.0455}, {"rank": 18, "txId": 339083330, "class": "unknown", "risk_score": 0.074, "betweenness": 0.0, "pagerank": 0.2012, "in_degree": 0.0909}, {"rank": 19, "txId": 66768946, "class": "unknown", "risk_score": 0.0697, "betweenness": 0.0, "pagerank": 0.2096, "in_degree": 0.0455}, {"rank": 20, "txId": 42991788, "class": "unknown", "risk_score": 0.0647, "betweenness": 0.0882, "pagerank": 0.0476, "in_degree": 0.0455}];
+
+  // ── Plotly config ──────────────────────────────────────────
+  const plotConfig = {
+    responsive: true,
+    displayModeBar: true,
+    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+    displaylogo: false
+  };
+
+  // ── Render charts ──────────────────────────────────────────
+  Plotly.newPlot('networkGraph', networkData.data, networkData.layout, plotConfig);
+  Plotly.newPlot('timeChart',    timeData.data,    timeData.layout,    plotConfig);
+
+  // ── Render table ───────────────────────────────────────────
+  function getRiskLevel(score) {
+    if (score >= 0.6) return 'high';
+    if (score >= 0.3) return 'medium';
+    return 'low';
+  }
+
+  function renderTable(cls) {
+    const body      = document.getElementById('tableBody');
+    const noResults = document.getElementById('noResults');
+    const count     = document.getElementById('tableCount');
+
+    const rows = cls === 'all'
+      ? allTableRows
+      : allTableRows.filter(r => r.class === cls);
+
+    body.innerHTML = '';
+
+    if (rows.length === 0) {
+      noResults.style.display = 'block';
+      count.textContent = '(0 results)';
+      return;
+    }
+
+    noResults.style.display = 'none';
+    count.textContent = '(' + rows.length + ' nodes)';
+
+    rows.forEach(r => {
+      const level  = getRiskLevel(r.risk_score);
+      const pct    = Math.round(r.risk_score * 100);
+      const tr     = document.createElement('tr');
+      tr.innerHTML =
+        '<td>' + r.rank + '</td>' +
+        '<td>' + r.txId + '</td>' +
+        '<td><span class="badge ' + r.class + '">' + r.class + '</span></td>' +
+        '<td>' +
+          '<div class="risk-bar-wrap">' +
+            '<span style="font-size:11px;font-weight:600;color:var(--text-primary);min-width:36px">' + r.risk_score + '</span>' +
+            '<div class="risk-bar-bg">' +
+              '<div class="risk-bar-fill ' + level + '" style="width:' + pct + '%"></div>' +
+            '</div>' +
+          '</div>' +
+        '</td>' +
+        '<td>' + r.betweenness + '</td>' +
+        '<td>' + r.pagerank    + '</td>' +
+        '<td>' + r.in_degree   + '</td>';
+      body.appendChild(tr);
+    });
+  }
+
+  renderTable('all');
+
+  // ── Filter logic ───────────────────────────────────────────
+  // Network traces: 0=edges, 1=Illicit, 2=Licit, 3=Unknown, 4=Top10
+  // Time traces:    0=unknown, 1=licit, 2=illicit
+
+  function filterClass(cls, btn) {
+    document.querySelectorAll('.filter-btn')
+            .forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const info = document.getElementById('filterInfo');
+
+    renderTable(cls);
+
+    if (cls === 'all') {
+      Plotly.restyle('networkGraph', {visible: true}, [0,1,2,3,4]);
+      Plotly.restyle('timeChart',    {visible: true}, [0,1,2]);
+      info.textContent = 'Showing all classes';
+      return;
+    }
+
+    const netVisible = {
+      'illicit': [true, true,         'legendonly', 'legendonly', true],
+      'licit':   [true, 'legendonly', true,         'legendonly', true],
+      'unknown': [true, 'legendonly', 'legendonly', true,         true]
+    };
+
+    const timeVisible = {
+      'illicit': ['legendonly', 'legendonly', true],
+      'licit':   ['legendonly', true,         'legendonly'],
+      'unknown': [true,         'legendonly', 'legendonly']
+    };
+
+    Plotly.restyle('networkGraph', {visible: netVisible[cls]},  [0,1,2,3,4]);
+    Plotly.restyle('timeChart',    {visible: timeVisible[cls]}, [0,1,2]);
+
+    const labels = {
+      'illicit': 'Showing Illicit nodes only',
+      'licit':   'Showing Licit nodes only',
+      'unknown': 'Showing Unknown nodes only'
+    };
+    info.textContent = labels[cls];
+  }
+</script>
+</body>
+</html>
